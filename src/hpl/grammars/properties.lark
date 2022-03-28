@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: MIT
+// Copyright © 2021 André Santos
+
+hpl_property: metadata? _scope ":" _pattern
+
+metadata: _metadata_items
+
+_metadata_items: [_metadata_items] "#" _metadata_item
+
+_metadata_item: metadata_id
+              | metadata_title
+              | metadata_desc
+
+metadata_id: "id" ":" CNAME
+
+metadata_title: "title" ":" ESCAPED_STRING
+
+metadata_desc: "description" ":" ESCAPED_STRING
+
+_scope: global_scope
+      | after_until
+      | until
+
+global_scope: "globally"
+
+after_until: "after" activator ["until" terminator]
+
+until: "until" terminator
+
+activator: _any_event
+
+terminator: _any_event
+
+_pattern: existence
+        | absence
+        | response
+        | prevention
+        | requirement
+
+existence: "some" _any_event _time_bound?
+
+absence: "no" _any_event _time_bound?
+
+response: _any_event "causes" _any_event _time_bound?
+
+prevention: _any_event "forbids" _any_event _time_bound?
+
+requirement: _any_event "requires" _any_event _time_bound?
+
+_time_bound: "within" time_amount
+
+_any_event: event
+          | event_disjunction
+
+event: message predicate?
+
+event_disjunction: "(" (event "or")+ event ")"
+
+message: ros_topic _alias?
+
+ros_topic: ros_name _msg_type?
+
+_msg_type: "[" ros_msg_name "]"
+
+ros_msg_name: ROS_MSG_NAME
+
+time_amount: NUMBER TIME_UNIT
+
+frequency: NUMBER FREQ_UNIT
+
+_alias: "as" CNAME
