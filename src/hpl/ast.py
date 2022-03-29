@@ -7,12 +7,16 @@
 # Imports
 ###############################################################################
 
-from __future__ import unicode_literals
+from __future__ import annotations, unicode_literals
 from builtins import object, range, str
 from collections import namedtuple
 from past.builtins import basestring
+from typing import TYPE_CHECKING
 
 from .exceptions import HplSanityError, HplTypeError
+
+if TYPE_CHECKING:
+    from  .visitor import HplAstVisitor
 
 
 ###############################################################################
@@ -37,6 +41,10 @@ RosNameMap = namedtuple("RosNameMap", ("msg",))
 ###############################################################################
 
 class HplAstObject(object):
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_ast_object(self)
+
     @property
     def is_specification(self):
         return False
@@ -82,8 +90,11 @@ class HplAstObject(object):
 class HplSpecification(HplAstObject):
     __slots__ = ("properties",)
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_specification(self)
+
     def __init__(self, props):
-        self.properties = props # [HplProperty]
+        self.properties = props  # [HplProperty]
 
     @property
     def is_specification(self):
@@ -116,6 +127,9 @@ class HplSpecification(HplAstObject):
 
 class HplProperty(HplAstObject):
     __slots__ = ("scope", "pattern", "metadata")
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_property(self)
 
     def __init__(self, scope, pattern, meta=None):
         self.scope = scope # HplScope
@@ -263,6 +277,9 @@ class HplScope(HplAstObject):
     AFTER = 3
     UNTIL = 4
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_scope(self)
+
     def __init__(self, scope, activator=None, terminator=None):
         if scope == self.GLOBAL:
             if activator is not None:
@@ -361,6 +378,7 @@ class HplScope(HplAstObject):
 
 
 class HplPattern(HplAstObject):
+
     __slots__ = ("pattern_type", "behaviour", "trigger", "min_time", "max_time")
 
     EXISTENCE = 1
@@ -368,6 +386,9 @@ class HplPattern(HplAstObject):
     RESPONSE = 3
     REQUIREMENT = 4
     PREVENTION = 5
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_pattern(self)
 
     def __init__(self, pattern, behaviour, trigger, min_time=0.0, max_time=INF):
         if pattern == self.EXISTENCE or pattern == self.ABSENCE:
@@ -505,6 +526,10 @@ class HplPattern(HplAstObject):
 ###############################################################################
 
 class HplEvent(HplAstObject):
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_event(self)
+
     @property
     def is_event(self):
         return True
@@ -534,6 +559,9 @@ class HplSimpleEvent(HplEvent):
     __slots__ = ("event_type", "predicate", "topic", "alias", "msg_type")
 
     PUBLISH = 1
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_simple_event(self)
 
     def __init__(self, event_type, predicate, topic, msg_type=None, alias=None):
         if event_type != self.PUBLISH:
@@ -644,6 +672,9 @@ class HplEventDisjunction(HplEvent):
 
     _DUP = "topic '{}' appears multiple times in an event disjunction"
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_event_disjunction(self)
+
     def __init__(self, event1, event2):
         if not event1.is_event:
             raise TypeError("not an event: " + str(event1))
@@ -743,6 +774,9 @@ class HplPredicate(HplAstObject):
             raise HplTypeError("not a boolean expression: " + str(expr))
         self.condition = expr
         self._static_checks()
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_predicate(self)
 
     @property
     def is_predicate(self):
@@ -916,6 +950,9 @@ class HplPredicate(HplAstObject):
 class HplVacuousTruth(HplAstObject):
     __slots__ = ()
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_vacuous_truth(self)
+
     @property
     def is_predicate(self):
         return True
@@ -967,6 +1004,9 @@ class HplVacuousTruth(HplAstObject):
 
 class HplContradiction(HplAstObject):
     __slots__ = ()
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_contradiction(self)
 
     @property
     def is_predicate(self):
@@ -1073,6 +1113,9 @@ class HplExpression(HplAstObject):
 
     def __init__(self, types=T_ANY):
         self.types = types
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_expression(self)
 
     @property
     def is_expression(self):
@@ -1196,6 +1239,9 @@ class HplQuantifier(HplExpression):
     _SET_REF = "cannot reference quantified variable '{}' in the domain of:\n{}"
     _MULTI_DEF = "multiple definitions of variable '{}' in:\n{}"
     _UNUSED = "quantified variable '{}' is never used in:\n{}"
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_quantifier(self)
 
     def __init__(self, qt, var, dom, p, shadow=False):
         HplExpression.__init__(self, types=T_BOOL)
@@ -1327,6 +1373,9 @@ class HplUnaryOperator(HplExpression):
         "not": (T_BOOL, T_BOOL)
     }
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_unary_operator(self)
+
     def __init__(self, op, arg):
         tin, tout = self._OPS[op]
         HplExpression.__init__(self, types=tout)
@@ -1405,6 +1454,9 @@ class HplBinaryOperator(HplExpression):
         ">=": (T_NUM, T_NUM, T_BOOL, True, False),
         "in": (T_PRIM, T_SET | T_RAN, T_BOOL, True, False),
     }
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_binary_operator(self)
 
     def __init__(self, op, arg1, arg2):
         tin1, tin2, tout, infix, comm = self._OPS[op]
@@ -1564,6 +1616,9 @@ class HplFunctionCall(HplExpression):
         ),
     }
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_functional_call(self)
+
     def __init__(self, fun, args):
         try:
             function_type = self._BUILTINS[fun]
@@ -1681,6 +1736,9 @@ class HplFunctionCall(HplExpression):
 class HplFieldAccess(HplExpression):
     __slots__ = HplExpression.__slots__ + ("message", "field", "ros_type")
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_field_access(self)
+
     def __init__(self, msg, field):
         HplExpression.__init__(self, types=T_ROS)
         self.message = msg # HplExpression
@@ -1740,6 +1798,9 @@ class HplArrayAccess(HplExpression):
     __slots__ = HplExpression.__slots__ + ("array", "item", "ros_type")
 
     _MULTI_ARRAY = "multi-dimensional array access: '{}[{}]'"
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_array_access(self)
 
     def __init__(self, array, index):
         if array.is_accessor and array.is_indexed:
@@ -1807,6 +1868,9 @@ class HplArrayAccess(HplExpression):
 class HplValue(HplExpression):
     __slots__ = HplExpression.__slots__
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_value(self)
+
     @property
     def is_value(self):
         return True
@@ -1843,9 +1907,12 @@ class HplValue(HplExpression):
 class HplSet(HplValue):
     __slots__ = HplValue.__slots__ + ("values",)
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_set(self)
+
     def __init__(self, values):
         HplValue.__init__(self, types=T_SET)
-        self.values = values # [HplValue]
+        self.values = values  # [HplValue]
         for value in values:
             self._type_check(value, T_PRIM)
 
@@ -1892,6 +1959,9 @@ class HplSet(HplValue):
 class HplRange(HplValue):
     __slots__ = HplValue.__slots__ + (
         "min_value", "max_value", "exclude_min", "exclude_max")
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_range(self)
 
     def __init__(self, lb, ub, exc_min=False, exc_max=False):
         HplValue.__init__(self, types=T_RAN)
@@ -1953,6 +2023,9 @@ class HplRange(HplValue):
 class HplLiteral(HplValue):
     __slots__ = HplValue.__slots__ + ("token", "value",)
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_literal(self)
+
     def __init__(self, token, value):
         t = T_NUM
         if value is True or value is False:
@@ -1993,6 +2066,9 @@ class HplLiteral(HplValue):
 class HplThisMessage(HplValue):
     __slots__ = HplValue.__slots__ + ("ros_type",)
 
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_this_message(self)
+
     def __init__(self):
         HplValue.__init__(self, types=T_MSG)
         self.ros_type = None
@@ -2026,6 +2102,9 @@ class HplThisMessage(HplValue):
 
 class HplVarReference(HplValue):
     __slots__ = HplValue.__slots__ + ("token", "defined_at", "ros_type")
+
+    def accept(self, visitor: HplAstVisitor) -> None:
+        visitor.visit_hpl_var_reference(self)
 
     def __init__(self, token):
         HplValue.__init__(self, types=T_ITEM)
