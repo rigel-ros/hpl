@@ -25,7 +25,7 @@ requirements = [r for r in read("requirements.txt").splitlines() if r]
 
 
 setup(
-    name             = "hpl-specs",
+    name             = "rigel-hpl",
     version          = __version__,
     author           = u"André Santos",
     author_email     = "andre.f.santos@inesctec.pt",
@@ -45,15 +45,8 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
         "Topic :: Software Development",
         "Topic :: Software Development :: Compilers",
