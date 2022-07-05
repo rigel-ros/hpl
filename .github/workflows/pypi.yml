@@ -1,6 +1,6 @@
 name: Deploy rigel-hpl Python Package
 
-on: [push]
+on: [release]
 
 jobs:
 
@@ -12,8 +12,6 @@ jobs:
         python-version: ["3.8", "3.9"]
 
     runs-on: ubuntu-latest
-
-    if: github.event_name == 'release' && github.event.action == 'created'
 
     steps:
 
