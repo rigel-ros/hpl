@@ -1,6 +1,9 @@
 name: Deploy rigel-hpl Python Package
 
-on: [release]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
 
