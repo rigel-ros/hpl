@@ -1,6 +1,6 @@
 name: Deploy rigel-hpl Python Package
 
-on: push
+on: [push]
 
 jobs:
 
@@ -12,6 +12,9 @@ jobs:
         python-version: ["3.8", "3.9"]
 
     runs-on: ubuntu-latest
+
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+
     steps:
 
       - uses: actions/checkout@master
@@ -21,24 +24,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install pypa/build
-            run: >-
-              python -m
-              pip install
-              build
-              --user
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install wheel
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Build a binary wheel and a source tarball
-        run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
+      - name: Build binary wheel and a source tarball
+        run: python setup.py sdist bdist_wheel
 
-      - name: Publish package to PyPI
-        if: startsWith(github.ref, 'refs/tags')
+      - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+            password: ${{ secrets.PYPI_API_TOKEN }}
